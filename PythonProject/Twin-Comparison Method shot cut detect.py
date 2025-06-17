@@ -3,7 +3,6 @@ from time import sleep
 import cv2
 import matplotlib
 import numpy as np
-import tinydb as db
 from matplotlib import pyplot as plt
 
 #print("OpenCV version: " + cv.__version__)
@@ -62,11 +61,13 @@ def twin_comparison_method(video_path, TH=0.5, TD=0.1):
             shot_boundaries.append(frame_index)
             diff_accum = 0  # Reset for new shot
             print("Shot Change at: " + str(frame_index))
+            cv2.imwrite("testFrames/" + str(frame_index) + " C .jpg", frame)
         elif diff > TD:
             diff_accum += diff
             if diff_accum > TH:
                 shot_boundaries.append(frame_index)
                 print("SLOW Shot Change at: " + str(frame_index))
+                cv2.imwrite("testFrames/" + str(frame_index) + " S.jpg", frame)
                 diff_accum = 0
         else:
             diff_accum = 0
