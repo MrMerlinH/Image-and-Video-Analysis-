@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 #cv.waitKey(0)
 #cv.destroyAllWindows()
 
-vid = cv.VideoCapture("everest.mp4")
+vid = cv.VideoCapture("videos/V3C1_200/everest.mp4")
 hists = []
 BINS = 64
 ranges=[0, 256]
