@@ -3,6 +3,7 @@ from time import sleep
 import cv2
 import matplotlib
 import numpy as np
+import tinydb as db
 from matplotlib import pyplot as plt
 
 #print("OpenCV version: " + cv.__version__)
@@ -37,7 +38,7 @@ def euclidean_distance(hist1, hist2):
     return np.linalg.norm(hist1 - hist2)
 
 
-def twin_comparison_method(video_path, TH=0.7, TD=0.2):
+def twin_comparison_method(video_path, TH=0.5, TD=0.1):
     cap = cv2.VideoCapture(video_path)
     ret, prev_frame = cap.read()
     if not ret:
