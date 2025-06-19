@@ -25,6 +25,11 @@ def update_embedding_in_db(filename: str, embedding: np.ndarray, conn):
 
 def extract_and_store_embeddings():
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    print(torch.cuda.is_available())
+    print(torch.version.cuda)
+    print("Using device:", device)
+
     model, preprocess = clip.load("ViT-B/32", device=device)
 
     # Connect to database
