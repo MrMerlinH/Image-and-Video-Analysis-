@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 
 DB_PATH = "DB/cbvr.db"
-KEYFRAME_FOLDER = "PythonProject/testFrames"  # path to your keyframes
+KEYFRAME_FOLDER = "testFrames"  # path to your keyframes
 VIDEO_ID = 201  # adjust depending on your DB structure
 
 def serialize_embedding(embedding: np.ndarray) -> bytes:

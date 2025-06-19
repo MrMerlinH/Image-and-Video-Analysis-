@@ -147,6 +147,8 @@ if not query:
     conn = sqlite3.connect(DB_PATH)
     cols = st.columns(5)
     for i, (keyframeID, filename) in enumerate(zip(ids, filenames)):
+        if i >= 2000:
+            break
         img_path = os.path.join(filename)
         if os.path.exists(img_path):
             with cols[i % 5]:
