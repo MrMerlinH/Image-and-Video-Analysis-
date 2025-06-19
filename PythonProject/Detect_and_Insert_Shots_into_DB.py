@@ -23,21 +23,21 @@ def save_middle_keyframes(video_path, shot_boundaries):
 
     # Normalize and prepare the input path
     #normalized_path = os.path.normpath(video_path)  # Convert to system's path format
-    print(video_path)
+    #print(video_path)
 
     relative_path = video_path.replace("\\", "/",1)
     relative_path = "../" + relative_path
 
     # Optional: convert to Unix-style forward slashes to match DB (if needed)
-    print(relative_path)
+    #print(relative_path)
 
     # Execute query
     c.execute("SELECT videos.id FROM videos WHERE file_path = '"+str(relative_path)+"'")
 
     result = c.fetchone()
 
-    print("ok = {}".format(relative_path))
-    print("epic result"+str(result))
+    #print("ok = {}".format(relative_path))
+    #print("epic result"+str(result))
 
     video_id = result[0] if result else -1
     if video_id == -1:
@@ -71,7 +71,7 @@ def save_middle_keyframes(video_path, shot_boundaries):
 for root, dirs, files in os.walk(video_folder):
     for file in files:
         full_path = os.path.join(root, file)
-        print(full_path)
+        #print(full_path)
         shot_boundaries = TransNet_ShotD_Split.shotDetection(full_path)
-        print(shot_boundaries)
+        #print(shot_boundaries)
         save_middle_keyframes(full_path, shot_boundaries)

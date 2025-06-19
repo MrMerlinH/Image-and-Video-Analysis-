@@ -70,7 +70,7 @@ def shotDetection(path):
     scene_changes = (scene_scores > 0.5).astype(np.uint8)
     change_indices = np.where(scene_changes == 1)[0].tolist()
 
-    print("Detected scene changes at frames:", change_indices)
+    #print("Detected scene changes at frames:", change_indices)
 
     # Final cleanup
     del video_np, predictions, scene_scores, scene_changes
