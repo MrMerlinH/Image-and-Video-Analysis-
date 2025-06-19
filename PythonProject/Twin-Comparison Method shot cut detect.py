@@ -79,6 +79,7 @@ def twin_comparison_method(video_path, TH=0.5, TD=0.1):
         frame_index += 1
 
     cap.release()
+    print(shot_boundaries)
     save_middle_keyframes("videos/V3C1_200/everest.mp4", shot_boundaries)
     return shot_boundaries
 
@@ -100,10 +101,10 @@ def save_middle_keyframes(video_path, shot_boundaries):
             filename = f"testFrames/{os.path.basename(video_path)}_keyframe_shot{i}_frame{middle_frame}.jpg"
             cv2.imwrite(filename, frame)
             print(f"Saved keyframe for shot {i} at frame {middle_frame} as {filename}")
-            c.execute("""
-                           INSERT INTO shots (video_id, start_frame, end_frame, keyframe_path, clip_embedding)
-                           VALUES (?, ?, ?, ?, NULL)
-                           """, (201, prev_boundary, boundary, filename))
+            #c.execute("""
+             #              INSERT INTO shots (video_id, start_frame, end_frame, keyframe_path, clip_embedding)
+            #               VALUES (?, ?, ?, ?, NULL)
+            #               """, (201, prev_boundary, boundary, filename))
         else:
             print(f"Failed to read frame {middle_frame} for shot {i}")
 
