@@ -5,7 +5,7 @@ import clip
 from PIL import Image
 import numpy as np
 
-DB_PATH = "PythonProject/DB/cbvr.db"
+DB_PATH = "DB/cbvr.db"
 KEYFRAME_FOLDER = "PythonProject/testFrames"  # path to your keyframes
 VIDEO_ID = 201  # adjust depending on your DB structure
 
