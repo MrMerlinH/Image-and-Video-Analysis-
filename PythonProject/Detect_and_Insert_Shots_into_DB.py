@@ -73,5 +73,37 @@ for root, dirs, files in os.walk(video_folder):
         full_path = os.path.join(root, file)
         #print(full_path)
         shot_boundaries = TransNet_ShotD_Split.shotDetection(full_path)
+
+        cap = cv2.VideoCapture(full_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        #print(fps)
+        # List to hold updated boundaries
+        updated_boundaries = []
+
+        # Add start and end if not included
+        if 0 not in shot_boundaries:
+            shot_boundaries.insert(0, 0)
+
+        # Process each shot
+        for i in range(len(shot_boundaries) - 1):
+            start = shot_boundaries[i]
+            end = shot_boundaries[i + 1]
+            updated_boundaries.append(start)
+
+            duration = (end - start) / fps
+            if duration > 7:
+                # Add frames at 5-second intervals
+                interval = int(fps * 7)
+                intermediate = list(range(start + interval, end, interval))
+                updated_boundaries.extend(intermediate)
+
+        # Always include the last shot end
+        updated_boundaries.append(shot_boundaries[-1])
+
+        # Optional: sort and deduplicate
+        updated_boundaries = sorted(set(updated_boundaries))
+
+
         #print(shot_boundaries)
-        save_middle_keyframes(full_path, shot_boundaries)
+        save_middle_keyframes(full_path, updated_boundaries)

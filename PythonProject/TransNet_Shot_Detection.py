@@ -17,10 +17,6 @@ model.load_state_dict(torch.load("transnetv2-weights/transnetv2-pytorch-weights.
 model.eval()
 
 
-for root, dirs, files in os.walk("videos"):
-    for file in files:
-        full_path = os.path.join(root, file)
-        print(full_path)
 
 
 def shotDetection(path):
@@ -51,7 +47,7 @@ def shotDetection(path):
         # single_frame_pred, single_frame_features,
         scene_predictions = model(video_tensor)
 
-        print(scene_predictions)
+        #print(scene_predictions)
 
     # Interpret output
     # scene_scores = scene_predictions[0].numpy()
@@ -60,7 +56,7 @@ def shotDetection(path):
 
     change_indices = np.where(scene_changes == 1)[0].tolist()
 
-    print("Detected scene changes at frames:", change_indices)
+    #print("Detected scene changes at frames:", change_indices)
 
     # Cleanup
     del video_np, video_tensor, scene_predictions, scene_scores, scene_changes
@@ -70,3 +66,39 @@ def shotDetection(path):
 
     return change_indices
 
+for root, dirs, files in os.walk("videos"):
+
+        full_path = "videos/V3C1_200/00009.mp4"#os.path.join(root, file)
+        print(full_path)
+        shot_boundaries = shotDetection(full_path)
+
+        print(shot_boundaries)
+
+        cap = cv2.VideoCapture(full_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        # List to hold updated boundaries
+        updated_boundaries = []
+
+
+
+        # Process each shot
+        for i in range(len(shot_boundaries) - 1):
+            start = shot_boundaries[i]
+            end = shot_boundaries[i + 1]
+            updated_boundaries.append(start)
+
+            duration = (end - start) / fps
+            if duration > 7:
+                # Add frames at 5-second intervals
+                interval = int(fps * 7)
+                intermediate = list(range(start + interval, end, interval))
+                updated_boundaries.extend(intermediate)
+
+        # Always include the last shot end
+        updated_boundaries.append(shot_boundaries[-1])
+
+        # Optional: sort and deduplicate
+        updated_boundaries = sorted(set(updated_boundaries))
+        print(updated_boundaries)
+       # print(f"Final shot boundaries for {file}: {updated_boundaries}")

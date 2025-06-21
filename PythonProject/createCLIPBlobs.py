@@ -13,7 +13,7 @@ def serialize_embedding(embedding: np.ndarray) -> bytes:
     return embedding.astype(np.float32).tobytes()
 
 def update_embedding_in_db(filename: str, embedding: np.ndarray, conn):
-    print(filename)
+    #print(filename)
     blob = serialize_embedding(embedding)
     cursor = conn.cursor()
     cursor.execute("""
@@ -56,7 +56,7 @@ def extract_and_store_embeddings():
 
     conn.commit()
     conn.close()
-    print("\n📦 All embeddings updated in database.")
+   # print("\n📦 All embeddings updated in database.")
 
 if __name__ == "__main__":
     extract_and_store_embeddings()
