@@ -15,7 +15,32 @@ run_id = "c0c2f23f-dafe-4828-8f39-63f270688f6f"
 DRES_URL = f"https://vbs.videobrowsing.org"
 USERNAME = "TECHtalent09"
 PASSWORD = "xhJ3T4Ct"
+DB_PATH = "DB/cbvr.db"
+KEYFRAME_FOLDER = "PythonProject/"
 
+def get_video_name_to_id_map():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, file_path FROM videos")
+    rows = cursor.fetchall()
+    conn.close()
+    return {os.path.basename(path).split(".")[0].lower(): vid for vid, path in rows}
+
+def get_keyframes_for_video(video_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT shots.id, shots.keyframe_path
+        FROM shots
+        WHERE shots.video_id = ?
+        ORDER BY shots.start_frame
+    """, (video_id,))
+    results = cursor.fetchall()
+    conn.close()
+    return results  # List of (shot_id, keyframe_path)
+
+
+video_map = get_video_name_to_id_map()
 session = requests.Session()
 def login_to_dres():
     session = requests.Session()
@@ -52,17 +77,22 @@ if session:
 
 task_info = session.get(f"{DRES_URL}/api/v2/client/evaluation/list").json()
 
-evaluationId = task_info[0]["id"]
+ids = [item["id"] for item in task_info]
+names = [item["name"] for item in task_info]
+
+task = st.radio(
+    "Select task",
+    ids,
+    captions=names,
+
+)
+evaluationId = task
 
 
-test = session.get(f"{DRES_URL}/api/v2/client/evaluation/currentTask/{evaluationId}").json()
-st.write("Current Task ID: " + test["name"])
+activeTest = session.get(f"{DRES_URL}/api/v2/client/evaluation/currentTask/{evaluationId}").json()
+st.write("Current Task ID: " + activeTest["name"])
 
 
-
-
-DB_PATH = "DB/cbvr.db"
-KEYFRAME_FOLDER = "PythonProject/"  # folder where keyframe images are stored
 
 @st.dialog("Selected Shot", width="large")
 def play(video_path, start_time_sec):
@@ -71,25 +101,37 @@ def play(video_path, start_time_sec):
 
 
 @st.dialog("Submitted Shot", width="large")
-def submit(video_path, start_time_ms):
+def submit(video_path, start_time_ms, end_time_ms, fps):
     vid = os.path.basename(video_path)
     vid = vid.split(".")[0]
-    query = st.text_input("Optional Descriptor")
+    textInput = st.text_input("Text Input")
+
+    st.write(f"Video ID: {vid}")
+    st.write(f"Start Time: {start_time_ms:9.4f}ms | Start Frame: {(start_time_ms/1000)*fps}")
+    st.write(f"End Time: {end_time_ms:9.4f}ms | End Frame: {(end_time_ms/1000)*fps}")
+    col1, col2 = st.columns(2)
+    with col1:
+        startInput = st.text_input("Start Time")
+    with col2:
+        endInput = st.text_input("End Time")
+
     submission_payload = {
         "answerSets": [
             {
                 "answers": [
                     {
-                        "text": query,
+                        "text": textInput,
                         "mediaItemName": vid,
                         "mediaItemCollectionName": "IVADL",
-                        "start": start_time_ms,
-                        "end": start_time_ms
+                        "start": startInput,
+                        "end": endInput
                     }
                 ]
             }
         ]
     }
+
+    st.write(f"Submission Payload: {submission_payload}")
     if st.button("Submit"):
         resp = session.post(f"{DRES_URL}/api/v2/submit/{evaluationId}", json=submission_payload)
         st.write(resp.content)
@@ -134,13 +176,9 @@ def search(query, model, device, ids, filenames, embeddings, top_k=5):
 def load_image(path):
     return Image.open(path)
 
-# Streamlit UI
-st.title("Video Shot Search with CLIP")
-
 model, preprocess, device = load_model()
 
-query = st.text_input("Enter your search query", "")
-
+query = st.text_input("Enter your search query or video name", "").strip()
 
 ids, filenames, embeddings = fetch_embeddings()
 if not query:
@@ -152,7 +190,7 @@ if not query:
         img_path = os.path.join(filename)
         if os.path.exists(img_path):
             with cols[i % 5]:
-                st.image(Image.open(img_path), width=300, caption=f"Shot ID: {keyframeID}, Video Source: {1}")
+                st.image(Image.open(img_path), width=300, caption=f"Shot ID: {keyframeID}, Video Source: {os.path.basename(str(filename)).split(".")[0]}")
                 if st.button("Play", key=f"imgbtn_{keyframeID}", use_container_width=True):
 
                     cur = conn.cursor()
@@ -170,62 +208,121 @@ if not query:
                 if st.button("Submit", key=f"imgsbmtbtn_{keyframeID}", use_container_width=True):
                     cur = conn.cursor()
                     cur.execute("""
-                                SELECT videos.file_path, shots.start_frame, videos.fps
+                                SELECT videos.file_path, shots.start_frame, shots.end_frame, videos.fps
                                 FROM shots
                                          JOIN videos ON shots.video_id = videos.id
                                 WHERE shots.id = ?
                                 """, (keyframeID,))
                     result = cur.fetchone()
                     if result:
-                        video_path, start_frame, fps = result
-                        start_time_ms = start_frame / fps * 1000
-                        submit(video_path, start_time_ms)
+                        video_path, start_frame, end_frame, fps = result
+                        start_time_ms = (start_frame / fps) * 1000
+                        end_time_ms = (end_frame / fps) * 1000
+                        submit(video_path, start_time_ms, end_time_ms, fps)
     conn.close()
 if query:
-    conn = sqlite3.connect(DB_PATH)
-    if len(ids) == 0:
-        st.warning("No embeddings found in the database.")
-    else:
-        results = search(query, model, device, ids, filenames, embeddings, 20)
-
-        st.write(f"Top {len(results)} results:")
-
-        cols = st.columns(5)  # 3-column grid
-
-        for i, (keyframeID, filename, score) in enumerate(results):
-            img_path = os.path.join(filename)
-            if os.path.exists(img_path):
-                image = load_image(img_path)
-                with cols[i % 5]:
-                    st.image(image, width=300, caption=f"Shot ID: {keyframeID}, Similarity: {score}")
-                    if st.button("Play", key=f"imgbtn_{keyframeID}", use_container_width=True):
-
-                        cur = conn.cursor()
-                        cur.execute("""
-                                    SELECT videos.file_path, shots.start_frame, videos.fps
-                                    FROM shots
-                                    JOIN videos ON shots.video_id = videos.id
-                                    WHERE shots.id = ?
-                                    """, (keyframeID,))
-                        result = cur.fetchone()
-                        if result:
-                            video_path, start_frame, fps = result
-                            start_time_sec = start_frame / fps
-                            play(video_path, start_time_sec)
-                    if st.button("Submit", key=f"imgsbmtbtn_{keyframeID}", use_container_width=True):
-                        cur = conn.cursor()
-                        cur.execute("""
-                                    SELECT videos.file_path, shots.start_frame, videos.fps
-                                    FROM shots
-                                             JOIN videos ON shots.video_id = videos.id
-                                    WHERE shots.id = ?
-                                    """, (keyframeID,))
-                        result = cur.fetchone()
-                        if result:
-                            video_path, start_frame, fps = result
-                            start_time_ms = start_frame / fps * 1000
-                            submit(video_path, start_time_ms)
+    if query.startswith("video:"):
+        # Special case: Show all keyframes for a video by index
+        try:
+            index = int(query.split(":")[1].strip())
+            if index < 1 or index > len(video_map):
+                st.warning(f"Index out of range. Enter 1 to {len(video_map)}.")
             else:
-                with cols[i % 5]:
-                    st.warning(f"Image not found: {filename}")
-    conn.close()
+                selected_video_id = list(video_map.keys())[index - 1]  # convert to 0-based index
+                selected_video_path = video_map[selected_video_id]
+
+                st.subheader(f"Showing keyframes for Video {index}: `{1}`")
+
+                conn = sqlite3.connect(DB_PATH)
+                cur = conn.cursor()
+                cur.execute("SELECT id, keyframe_path FROM shots WHERE video_id = ?", (selected_video_id,))
+                shots = cur.fetchall()
+
+
+                cols = st.columns(5)
+                for i, (keyframe_id, keyframe_path) in enumerate(shots):
+                    with cols[i % 5]:
+                        if os.path.exists(keyframe_path):
+                            st.image(load_image(keyframe_path), width=300, caption=f"Shot ID: {keyframe_id}")
+                            if st.button("Play", key=f"imgbtn_{keyframe_id}", use_container_width=True):
+
+                                cur = conn.cursor()
+                                cur.execute("""
+                                            SELECT videos.file_path, shots.start_frame, videos.fps
+                                            FROM shots
+                                                     JOIN videos ON shots.video_id = videos.id
+                                            WHERE shots.id = ?
+                                            """, (keyframe_id,))
+                                result = cur.fetchone()
+                                if result:
+                                    video_path, start_frame, fps = result
+                                    start_time_sec = start_frame / fps
+                                    play(video_path, start_time_sec)
+                            if st.button("Submit", key=f"imgsbmtbtn_{keyframe_id}", use_container_width=True):
+                                cur = conn.cursor()
+                                cur.execute("""
+                                            SELECT videos.file_path, shots.start_frame, shots.end_frame, videos.fps
+                                            FROM shots
+                                                     JOIN videos ON shots.video_id = videos.id
+                                            WHERE shots.id = ?
+                                            """, (keyframe_id,))
+                                result = cur.fetchone()
+                                if result:
+                                    video_path, start_frame, end_frame, fps = result
+                                    start_time_ms = (start_frame / fps) * 1000
+                                    end_time_ms = (end_frame / fps) * 1000
+                                    submit(video_path, start_time_ms, end_time_ms, fps)
+                        else:
+                            st.warning(f"Missing keyframe: {keyframe_path}")
+                conn.close()
+        except ValueError:
+            st.error("Invalid format. Use `video: <number>` (e.g., `video: 1`)")
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        if len(ids) == 0:
+            st.warning("No embeddings found in the database.")
+        else:
+            results = search(query, model, device, ids, filenames, embeddings, 20)
+
+            st.write(f"Top {len(results)} results:")
+
+            cols = st.columns(5)  # 3-column grid
+
+            for i, (keyframeID, filename, score) in enumerate(results):
+                img_path = os.path.join(filename)
+                if os.path.exists(img_path):
+                    image = load_image(img_path)
+                    with cols[i % 5]:
+                        st.image(image, width=300, caption=f"Shot ID: {keyframeID}, Video ID: {os.path.basename(str(filename)).split(".")[0]} Similarity: {score}")
+                        if st.button("Play", key=f"imgbtn_{keyframeID}", use_container_width=True):
+
+                            cur = conn.cursor()
+                            cur.execute("""
+                                        SELECT videos.file_path, shots.start_frame, videos.fps
+                                        FROM shots
+                                        JOIN videos ON shots.video_id = videos.id
+                                        WHERE shots.id = ?
+                                        """, (keyframeID,))
+                            result = cur.fetchone()
+                            if result:
+                                video_path, start_frame, fps = result
+                                start_time_sec = start_frame / fps
+                                play(video_path, start_time_sec)
+                        if st.button("Submit", key=f"imgsbmtbtn_{keyframeID}", use_container_width=True):
+                            cur = conn.cursor()
+                            cur.execute("""
+                                        SELECT videos.file_path, shots.start_frame, shots.end_frame, videos.fps
+                                        FROM shots
+                                                 JOIN videos ON shots.video_id = videos.id
+                                        WHERE shots.id = ?
+                                        """, (keyframeID,))
+                            result = cur.fetchone()
+                            if result:
+                                video_path, start_frame, end_frame, fps = result
+                                start_time_ms = (start_frame / fps) * 1000
+                                end_time_ms = (end_frame / fps) * 1000
+                                submit(video_path, start_time_ms, end_time_ms, fps)
+                else:
+                    with cols[i % 5]:
+                        st.warning(f"Image not found: {filename}")
+        conn.close()
