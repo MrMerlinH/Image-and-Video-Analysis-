@@ -146,31 +146,32 @@ def load_model():
 def fetch_embeddings():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, keyframe_path, clip_embedding FROM shots WHERE clip_embedding IS NOT NULL")
+    cursor.execute("SELECT id, keyframe_path, clip_embedding, video_id FROM shots WHERE clip_embedding IS NOT NULL")
     rows = cursor.fetchall()
     conn.close()
 
-    ids, filenames, embeddings = [], [], []
+    ids, filenames, embeddings , videoIDs = [], [], [], []
     for row in rows:
         ids.append(row[0])
         filenames.append(row[1])
         emb = np.frombuffer(row[2], dtype=np.float32)
+        videoIDs.append(row[3])
         embeddings.append(emb)
-    return ids, filenames, np.array(embeddings)
+    return ids, filenames, np.array(embeddings) , videoIDs
 
 def cosine_similarity(a, b):
     a_norm = a / np.linalg.norm(a)
     b_norm = b / np.linalg.norm(b)
     return np.dot(a_norm, b_norm)
 
-def search(query, model, device, ids, filenames, embeddings, top_k=5):
+def search(query, model, device, ids, filenames, embeddings, videoIDs,top_k=5 ):
     with torch.no_grad():
         text_tokens = clip.tokenize([query]).to(device)
         text_embedding = model.encode_text(text_tokens).cpu().numpy()[0]
 
     sims = [cosine_similarity(text_embedding, emb) for emb in embeddings]
     top_indices = np.argsort(sims)[::-1][:top_k]
-    results = [(ids[i], filenames[i], sims[i]) for i in top_indices]
+    results = [(ids[i], filenames[i], sims[i], videoIDs[i]) for i in top_indices]
     return results
 
 def load_image(path):
@@ -180,7 +181,7 @@ model, preprocess, device = load_model()
 
 query = st.text_input("Enter your search query or video name", "").strip()
 
-ids, filenames, embeddings = fetch_embeddings()
+ids, filenames, embeddings , videoIDs = fetch_embeddings()
 if not query:
     conn = sqlite3.connect(DB_PATH)
     cols = st.columns(5)
@@ -225,17 +226,18 @@ if query:
         # Special case: Show all keyframes for a video by index
         try:
             index = int(query.split(":")[1].strip())
-            if index < 1 or index > len(video_map):
-                st.warning(f"Index out of range. Enter 1 to {len(video_map)}.")
+            if index < 1 or index > len(video_map)-1:
+                st.warning(f"Index out of range. Enter 1 to {len(video_map)-1}.")
             else:
                 selected_video_id = list(video_map.keys())[index - 1]  # convert to 0-based index
                 selected_video_path = video_map[selected_video_id]
 
-                st.subheader(f"Showing keyframes for Video {index}: `{1}`")
+                st.subheader(f"Showing keyframes for DB_Video_ID {index}: `{1}`")
 
                 conn = sqlite3.connect(DB_PATH)
                 cur = conn.cursor()
-                cur.execute("SELECT id, keyframe_path FROM shots WHERE video_id = ?", (selected_video_id,))
+                print(selected_video_id)
+                cur.execute("SELECT id, keyframe_path FROM shots WHERE video_id = ?", (index,))
                 shots = cur.fetchall()
 
 
@@ -282,18 +284,18 @@ if query:
         if len(ids) == 0:
             st.warning("No embeddings found in the database.")
         else:
-            results = search(query, model, device, ids, filenames, embeddings, 20)
+            results = search(query, model, device, ids, filenames, embeddings, videoIDs, 20)
 
             st.write(f"Top {len(results)} results:")
 
             cols = st.columns(5)  # 3-column grid
 
-            for i, (keyframeID, filename, score) in enumerate(results):
+            for i, (keyframeID, filename, score, videoID) in enumerate(results):
                 img_path = os.path.join(filename)
                 if os.path.exists(img_path):
                     image = load_image(img_path)
                     with cols[i % 5]:
-                        st.image(image, width=300, caption=f"Shot ID: {keyframeID}, Video ID: {os.path.basename(str(filename)).split(".")[0]} Similarity: {score}")
+                        st.image(image, width=300, caption=f"Shot ID: {keyframeID}, Video File Name: {os.path.basename(str(filename)).split(".")[0]} Similarity: {score}, DB id video: {videoID}")
                         if st.button("Play", key=f"imgbtn_{keyframeID}", use_container_width=True):
 
                             cur = conn.cursor()
