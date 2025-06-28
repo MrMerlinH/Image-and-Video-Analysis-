@@ -1,0 +1,8 @@
+streamlit
+sqlite-utils
+numpy
+torch
+git+https://github.com/openai/CLIP.git
+Pillow
+requests
+python-dotenv

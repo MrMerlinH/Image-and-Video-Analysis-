@@ -15,8 +15,10 @@ load_dotenv()
 logged_in = False
 run_id = "c0c2f23f-dafe-4828-8f39-63f270688f6f"
 DRES_URL = f"https://vbs.videobrowsing.org"
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
+USERNAME = os.getenv("DRES_USERNAME")
+PASSWORD = os.getenv("DRES_PASSWORD")
+print(USERNAME)
+print(PASSWORD)
 DB_PATH = "DB/cbvr.db"
 KEYFRAME_FOLDER = "PythonProject/"
 
