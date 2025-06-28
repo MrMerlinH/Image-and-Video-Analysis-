@@ -7,14 +7,16 @@ from PIL import Image
 import io
 import os
 import requests
+from dotenv import load_dotenv
 
 st.set_page_config(layout="wide")
+load_dotenv()
 
 logged_in = False
 run_id = "c0c2f23f-dafe-4828-8f39-63f270688f6f"
 DRES_URL = f"https://vbs.videobrowsing.org"
-USERNAME = "TECHtalent09"
-PASSWORD = "xhJ3T4Ct"
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
 DB_PATH = "DB/cbvr.db"
 KEYFRAME_FOLDER = "PythonProject/"
 
