@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 
 DB_PATH = "DB/cbvr.db"
-KEYFRAME_FOLDER = "testFrames"  # path to your keyframes
+KEYFRAME_FOLDER = "KeyFrames"  # path to your keyframes
 VIDEO_ID = 201  # adjust depending on your DB structure
 
 def serialize_embedding(embedding: np.ndarray) -> bytes:
@@ -20,7 +20,7 @@ def update_embedding_in_db(filename: str, embedding: np.ndarray, conn):
         UPDATE shots
         SET clip_embedding = ?
         WHERE keyframe_path = ?
-    """, (blob, f"testFrames/{filename}"))
+    """, (blob, f"KeyFrames/{filename}"))
 
 
 def extract_and_store_embeddings():
