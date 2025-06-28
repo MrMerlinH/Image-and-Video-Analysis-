@@ -30,6 +30,8 @@ def main():
 
     for vf in video_files:
         video_path = os.path.join(VIDEO_FOLDER, vf)
+        video_path = video_path.replace("\\", "/")
+        print(video_path)
         duration, fps = get_video_metadata(video_path)
         if duration is None:
             print(f"⚠️ Failed to read metadata for: {vf}")

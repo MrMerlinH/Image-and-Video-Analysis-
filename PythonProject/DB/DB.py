@@ -7,18 +7,15 @@ def recreate_videos_table():
     cursor = conn.cursor()
 
     # Drop old videos table if it exists
-    cursor.execute("DROP TABLE shots")
+    cursor.execute("DROP TABLE videos")
 
     cursor.execute("""
-                   CREATE TABLE shots
+                   CREATE TABLE videos
                    (
                        id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                       video_id       INTEGER,
-                       start_frame    INTEGER,
-                       end_frame      INTEGER,
-                       keyframe_path  TEXT,
-                       clip_embedding BLOB,
-                       FOREIGN KEY (video_id) REFERENCES videos (id)
+                       file_path      TEXT,
+                       duration       REAL,
+                       fps           REAL
                    )
                    """)
 

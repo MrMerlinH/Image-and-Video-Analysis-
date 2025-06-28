@@ -17,8 +17,6 @@ run_id = "e98c03c2-2042-441d-b3d1-ced103a91d21"
 DRES_URL = f"https://vbs.videobrowsing.org"
 USERNAME = os.getenv("DRES_USERNAME")
 PASSWORD = os.getenv("DRES_PASSWORD")
-print(USERNAME)
-print(PASSWORD)
 DB_PATH = "DB/cbvr.db"
 KEYFRAME_FOLDER = "PythonProject/"
 
