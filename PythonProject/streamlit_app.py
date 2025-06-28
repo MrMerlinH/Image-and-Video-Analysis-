@@ -195,7 +195,7 @@ if not query:
         img_path = os.path.join(filename)
         if os.path.exists(img_path):
             with cols[i % 5]:
-                st.image(Image.open(img_path), width=300, caption=f"Shot ID: {keyframeID}, Video Source: {os.path.basename(str(filename)).split(".")[0]}")
+                st.image(Image.open(img_path), width=300, caption=f'Shot ID: {keyframeID}, Video Source: {os.path.basename(str(filename)).split(".")[0]}')
                 if st.button("Play", key=f"imgbtn_{keyframeID}", use_container_width=True):
 
                     cur = conn.cursor()
@@ -299,7 +299,7 @@ if query:
                 if os.path.exists(img_path):
                     image = load_image(img_path)
                     with cols[i % 5]:
-                        st.image(image, width=300, caption=f"Shot ID: {keyframeID}, Video File Name: {os.path.basename(str(filename)).split(".")[0]} Similarity: {score}, DB id video: {videoID}")
+                        st.image(image, width=300, caption=f'Shot ID: {keyframeID}, Video File Name: {os.path.basename(str(filename)).split(".")[0]} Similarity: {score}, DB id video: {videoID}')
                         if st.button("Play", key=f"imgbtn_{keyframeID}", use_container_width=True):
 
                             cur = conn.cursor()
