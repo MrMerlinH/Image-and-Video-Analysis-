@@ -13,7 +13,7 @@ st.set_page_config(layout="wide")
 load_dotenv()
 
 logged_in = False
-run_id = "c0c2f23f-dafe-4828-8f39-63f270688f6f"
+run_id = "e98c03c2-2042-441d-b3d1-ced103a91d21"
 DRES_URL = f"https://vbs.videobrowsing.org"
 USERNAME = os.getenv("DRES_USERNAME")
 PASSWORD = os.getenv("DRES_PASSWORD")
@@ -240,7 +240,7 @@ if query:
 
                 conn = sqlite3.connect(DB_PATH)
                 cur = conn.cursor()
-                print(selected_video_id)
+                #print(selected_video_id)
                 cur.execute("SELECT id, keyframe_path FROM shots WHERE video_id = ?", (index,))
                 shots = cur.fetchall()
 
